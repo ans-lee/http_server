@@ -1,8 +1,23 @@
+/*
+ *  Library Includes
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+
+/*
+ *  Non-library Includes
+ */
 
 #include "http_responses.h"
+
+/*
+ *  Helper Function Prototypes
+ */
+
+static int check_permission(char *filepath);
 
 char* create_response(char *request_headers) {
     char *http_method = strtok(request_headers, " ");
@@ -20,21 +35,27 @@ char* create_response(char *request_headers) {
 // nothing will show
 // TODO: check for permissions and handle folders and other file types like images
 char *create_get_response(char *file) {
-    if (strcmp(file, "/") == 0) {
+    if (strcmp(file, "/") == 0)
         file = "index.html";
-    } else {
+    else
         file += 1;
-    }
 
     FILE *fp = fopen(file, "r");
     char *response = malloc(BUFSIZ);
 
-    // Return 404 status code if file not found
-    if (!fp) {
+    if (!fp || (check_permission(file) == -1)) {
+        // Return 404 status code if file not found or check_permission fails
         snprintf(response, BUFSIZ, "HTTP/1.1 404 Not Found\n"
                                    "Content-Type: text/html\n"
                                    "Content-Length: 13\n\n"
                                    "404 Not Found\n");
+        return response;
+    } else if (check_permission(file) == 0) {
+        // Return 403 Forbidden if user has no permissions
+        snprintf(response, BUFSIZ, "HTTP/1.1 403 Forbidden\n"
+                                   "Content-Type: text/html\n"
+                                   "Content-Length: 13\n\n"
+                                   "403 Forbidden\n");
         return response;
     }
 
@@ -53,4 +74,22 @@ char *create_get_response(char *file) {
                                "%s", strlen(buffer), buffer);
 
     return response;
+}
+
+/*
+ *  Helper Functions
+ */
+
+// Returns 1 if the file has Read permissions for Others, 0 for no permission and
+// -1 if stat fails
+static int check_permission(char *filepath) {
+    struct stat s;
+    if (stat(filepath, &s) != 0) {
+        return -1;
+    }
+
+    if ((s.st_mode & S_IRWXO) & S_IROTH) {
+        return 1;
+    }
+    return 0;
 }

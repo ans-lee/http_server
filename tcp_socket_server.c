@@ -19,6 +19,10 @@
 
 #include "http_responses.h"
 
+/*
+ *  #defines
+ */
+
 #define PORT            0       // Setting PORT to 0 will pick a random port
 #define MAX_CONNS       10
 #define MAX_BUFF_LEN    8192    // 8KB max length for HTTP responses
