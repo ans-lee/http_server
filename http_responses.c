@@ -13,11 +13,19 @@
 
 #include "http_responses.h"
 
+
+/*
+ *  #defines
+ */
+
+#define MAX_BUFF_LEN    1024    // 1KB buffer size for reading files
+
 /*
  *  Helper Function Prototypes
  */
 
 static int check_permission(char *filepath);
+static char *read_file_contents(FILE *fp, long *length);
 
 char* create_response(char *request_headers) {
     char *http_method = strtok(request_headers, " ");
@@ -33,7 +41,6 @@ char* create_response(char *request_headers) {
 
 // NOTE: Content-Length header response must be very accurate otherwise
 // nothing will show
-// TODO: check for permissions and handle folders and other file types like images
 char *create_get_response(char *file) {
     if (strcmp(file, "/") == 0)
         file = "index.html";
@@ -59,19 +66,30 @@ char *create_get_response(char *file) {
         return response;
     }
 
-    // Return the contents of the file
-    char buffer[BUFSIZ];
-    fseek(fp, 0, SEEK_END);
-    long length = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    fread(buffer, 1, length, fp);
+    long length = 0;
+    char *contents = read_file_contents(fp, &length);
+    if (contents == NULL) {
+        // Return 500 Internal Server Error if the file could not be obtained
+        snprintf(response, BUFSIZ, "HTTP/1.1 500 Internal Server Error\n"
+                                   "Content-Type: text/html\n"
+                                   "Content-Length: 25\n\n"
+                                   "500 Internal Server Error\n");
+        return response;
+    }
     fclose(fp);
-    printf("%s", buffer);
 
-    snprintf(response, BUFSIZ, "HTTP/1.1 200 OK\n"
-                               "Content-Type: text/html\n"
-                               "Content-Length: %ld\n\n"
-                               "%s", strlen(buffer), buffer);
+    if (strstr(file, ".html") != NULL) {
+        snprintf(response, BUFSIZ, "HTTP/1.1 200 OK\n"
+                                   "Content-Type: text/html\n"
+                                   "Content-Length: %ld\n\n"
+                                   "%s", length, contents);
+    } else if (strstr(file, ".jpg") != NULL || strstr(file, ".jpeg") != NULL) {
+        snprintf(response, BUFSIZ, "HTTP/1.1 200 OK\n"
+                                   "Content-Type: image/jpeg\n"
+                                   "Content-Length: %ld\n\n"
+                                   "%s", length, contents);
+    }
+    // TODO: else statement
 
     return response;
 }
@@ -92,4 +110,53 @@ static int check_permission(char *filepath) {
         return 1;
     }
     return 0;
+}
+
+// Reads and returns the contents of the file, returns NULL if failed or if file is empty
+// TODO: for images there are null terminating chars, need to find another way
+static char *read_file_contents(FILE *fp, long *length) {
+    char buffer[MAX_BUFF_LEN];
+    char *contents = NULL;
+
+    // Get the length of the file
+    fseek(fp, 0, SEEK_END);
+    *length = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    if (*length == 0) {
+        return NULL;
+    }
+
+    // Allocate exact size if lower than 1 KB, otherwise allocate a starting
+    // size of 1 KB
+    if (*length < MAX_BUFF_LEN) 
+        contents = malloc(*length);
+    else
+        contents = malloc(MAX_BUFF_LEN);
+
+    // If malloc failed, stop this function
+    if (contents == NULL)
+        return NULL;
+
+    // Read in the file into contents and get the exact size
+    size_t bytes_read = 0;
+    size_t total = 0;
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
+        if (total < (total + bytes_read)) {
+            char *new = realloc(contents, total + bytes_read);
+
+            // If realloc fails, free contents and stop this function
+            if (new == NULL) {
+                free(contents);
+                return NULL;
+            }
+            contents = new;
+        }
+        strncat(contents, buffer, bytes_read);
+        total += bytes_read;
+    }
+    printf("contents = %s", contents);
+    printf("strlen = %ld", strlen(contents));
+
+    return contents;
 }
