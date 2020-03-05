@@ -114,9 +114,10 @@ void serve_request(int *server_fd, struct sockaddr_in *address) {
 
     // Prevent 0 byte reads from crashing the server
     if (bytes_read != 0) {
-        char *response = create_response(request);
-        write(socket, response, strlen(response));
-        free(response);
+        send_response(socket, request);
+        //char *response = create_response(request);
+        //write(socket, response, strlen(response));
+        //free(response);
     }
 
     printf("\n---------------- Sent a Response ----------------\n\n");

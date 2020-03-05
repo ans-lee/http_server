@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 /*
  *  Non-library Includes
@@ -25,73 +26,77 @@
  */
 
 static int check_permission(char *filepath);
-static char *read_file_contents(FILE *fp, long *length);
+static void send_file_contents(int socket_fd, FILE *fp);
 
-char* create_response(char *request_headers) {
+void send_response(int socket_fd, char *request_headers) {
     char *http_method = strtok(request_headers, " ");
 
     if (strcmp(http_method, "GET") == 0) {
         // Get the filename without the first slash
         char *file = strtok(NULL, " ");
-        return create_get_response(file);
+        send_get_response(socket_fd, file);
     }
 
-    return NULL;
+    return;
 }
 
 // NOTE: Content-Length header response must be very accurate otherwise
 // nothing will show
-char *create_get_response(char *file) {
+void send_get_response(int socket_fd, char *file) {
     if (strcmp(file, "/") == 0)
         file = "index.html";
     else
+        // Get the slash out of the filename
         file += 1;
 
     FILE *fp = fopen(file, "r");
-    char *response = malloc(BUFSIZ);
+    char *header = malloc(BUFSIZ);
 
-    if (!fp || (check_permission(file) == -1)) {
+    if (fp == NULL || check_permission(file) == -1) {
         // Return 404 status code if file not found or check_permission fails
-        snprintf(response, BUFSIZ, "HTTP/1.1 404 Not Found\n"
+        snprintf(header, BUFSIZ, "HTTP/1.1 404 Not Found\n"
                                    "Content-Type: text/html\n"
                                    "Content-Length: 13\n\n"
                                    "404 Not Found\n");
-        return response;
+        write(socket_fd, header, strlen(header));
+        return;
     } else if (check_permission(file) == 0) {
         // Return 403 Forbidden if user has no permissions
-        snprintf(response, BUFSIZ, "HTTP/1.1 403 Forbidden\n"
+        snprintf(header, BUFSIZ, "HTTP/1.1 403 Forbidden\n"
                                    "Content-Type: text/html\n"
                                    "Content-Length: 13\n\n"
                                    "403 Forbidden\n");
-        return response;
+        write(socket_fd, header, strlen(header));
+        return;
     }
 
+    /*
     long length = 0;
     char *contents = read_file_contents(fp, &length);
     if (contents == NULL) {
         // Return 500 Internal Server Error if the file could not be obtained
-        snprintf(response, BUFSIZ, "HTTP/1.1 500 Internal Server Error\n"
+        snprintf(header, BUFSIZ, "HTTP/1.1 500 Internal Server Error\n"
                                    "Content-Type: text/html\n"
                                    "Content-Length: 25\n\n"
                                    "500 Internal Server Error\n");
-        return response;
+        return header;
     }
     fclose(fp);
+    */
 
     if (strstr(file, ".html") != NULL) {
-        snprintf(response, BUFSIZ, "HTTP/1.1 200 OK\n"
-                                   "Content-Type: text/html\n"
-                                   "Content-Length: %ld\n\n"
-                                   "%s", length, contents);
+        snprintf(header, BUFSIZ, "HTTP/1.1 200 OK\n"
+                                 "Content-Type: text/html\n");
+        write(socket_fd, header, strlen(header));
     } else if (strstr(file, ".jpg") != NULL || strstr(file, ".jpeg") != NULL) {
-        snprintf(response, BUFSIZ, "HTTP/1.1 200 OK\n"
-                                   "Content-Type: image/jpeg\n"
-                                   "Content-Length: %ld\n\n"
-                                   "%s", length, contents);
+        snprintf(header, BUFSIZ, "HTTP/1.1 200 OK\n"
+                                 "Content-Type: image/jpeg\n");
+        write(socket_fd, header, strlen(header));
     }
     // TODO: else statement
 
-    return response;
+    send_file_contents(socket_fd, fp);
+    fclose(fp);
 }
 
 /*
@@ -113,50 +118,25 @@ static int check_permission(char *filepath) {
 }
 
 // Reads and returns the contents of the file, returns NULL if failed or if file is empty
-// TODO: for images there are null terminating chars, need to find another way
-static char *read_file_contents(FILE *fp, long *length) {
+static void send_file_contents(int socket_fd, FILE *fp) {
     char buffer[MAX_BUFF_LEN];
-    char *contents = NULL;
 
     // Get the length of the file
     fseek(fp, 0, SEEK_END);
-    *length = ftell(fp);
+    size_t length = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    if (*length == 0) {
-        return NULL;
+    snprintf(buffer, MAX_BUFF_LEN, "Content-Length: %ld\n\n", length);
+    write(socket_fd, buffer, strlen(buffer));
+
+    if (length == 0) {
+        // File is empty
+        return;
     }
 
-    // Allocate exact size if lower than 1 KB, otherwise allocate a starting
-    // size of 1 KB
-    if (*length < MAX_BUFF_LEN) 
-        contents = malloc(*length);
-    else
-        contents = malloc(MAX_BUFF_LEN);
-
-    // If malloc failed, stop this function
-    if (contents == NULL)
-        return NULL;
-
-    // Read in the file into contents and get the exact size
+    // Read in the file in chunks and send it to the socket
     size_t bytes_read = 0;
-    size_t total = 0;
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-        if (total < (total + bytes_read)) {
-            char *new = realloc(contents, total + bytes_read);
-
-            // If realloc fails, free contents and stop this function
-            if (new == NULL) {
-                free(contents);
-                return NULL;
-            }
-            contents = new;
-        }
-        strncat(contents, buffer, bytes_read);
-        total += bytes_read;
+        write(socket_fd, buffer, bytes_read);
     }
-    printf("contents = %s", contents);
-    printf("strlen = %ld", strlen(contents));
-
-    return contents;
 }

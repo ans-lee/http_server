@@ -6,10 +6,11 @@
  *  Functions
  */
 
-// Creates an appropriate response based on the request headers
-char *create_response(char *request_headers);
+// Sends an appropriate response based on the request headers
+void send_response(int socket_fd, char *request_headers);
 
-// Generates a GET response, with status code 200 OK and the requested file/folder/etc if
-// it exists and the user has permission, otherwise returns a 404 Not Found or 401 Unauthorized
+// Generates and sends a GET response, with status code 200 OK and the
+// requested file/folder/etc if it exists and the user has permission,
+// otherwise returns a 404 Not Found or 401 Unauthorized
 // depending on the condition of the requested data
-char *create_get_response(char *file);
+void send_get_response(int socket_fd, char *file);
