@@ -23,9 +23,9 @@
  *  #defines
  */
 
-#define PORT            0       // Setting PORT to 0 will pick a random port
-#define MAX_CONNS       10
-#define MAX_BUFF_LEN    8192    // 8KB max length for HTTP responses
+#define PORT                0       // Setting PORT to 0 will pick a random port
+#define MAX_CONNS           10
+#define MAX_HEADER_REQUEST_LEN     8192    // 8KB max length for HTTP request headers
 
 /*
  *  Function Prototypes
@@ -106,8 +106,8 @@ void serve_request(int *server_fd, struct sockaddr_in *address) {
     }
 
     // Read in the request
-    char request[MAX_BUFF_LEN] = {0};
-    long bytes_read = read(socket, request, MAX_BUFF_LEN);
+    char request[MAX_HEADER_REQUEST_LEN] = {0};
+    long bytes_read = read(socket, request, MAX_HEADER_REQUEST_LEN);
     printf("++++++++++++++++ Reading Request ++++++++++++++++\n\n");
     printf("%s", request);
     printf("++++++++++++++++ Finished Reading Request ++++++++++++++++\n\n");
@@ -115,9 +115,6 @@ void serve_request(int *server_fd, struct sockaddr_in *address) {
     // Prevent 0 byte reads from crashing the server
     if (bytes_read != 0) {
         send_response(socket, request);
-        //char *response = create_response(request);
-        //write(socket, response, strlen(response));
-        //free(response);
     }
 
     printf("\n---------------- Sent a Response ----------------\n\n");

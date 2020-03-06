@@ -19,30 +19,54 @@
  *  #defines
  */
 
-#define MAX_BUFF_LEN    1024    // 1KB buffer size for reading files
+#define MAX_HEADER_RESPONSE_LEN     8192    // 8KB max length for HTTP response headers
+#define MAX_BUFF_LEN                1024    // 1KB buffer size
 
 /*
  *  Helper Function Prototypes
  */
 
 static int check_permission(char *filepath);
+void print_content_type(int socket_fd, char *filename);
 static void send_file_contents(int socket_fd, FILE *fp);
+
+/*
+ *  Functions
+ */
 
 void send_response(int socket_fd, char *request_headers) {
     char *http_method = strtok(request_headers, " ");
 
     if (strcmp(http_method, "GET") == 0) {
-        // Get the filename without the first slash
+        // Get the filename
         char *file = strtok(NULL, " ");
-        send_get_response(socket_fd, file);
+        handle_get_response(socket_fd, file);
     }
 
     return;
 }
 
+void send_404_response(int socket_fd) {
+    char header[MAX_HEADER_RESPONSE_LEN];
+    snprintf(header, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 404 Not Found\n"
+                                       "Content-Type: text/html\n"
+                                       "Content-Length: 13\n\n"
+                                       "404 Not Found\n");
+    write(socket_fd, header, strlen(header));
+}
+
+void send_403_response(int socket_fd) {
+    char header[MAX_HEADER_RESPONSE_LEN];
+    snprintf(header, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 403 Forbidden\n"
+                                       "Content-Type: text/html\n"
+                                       "Content-Length: 13\n\n"
+                                       "403 Forbidden\n");
+    write(socket_fd, header, strlen(header));
+}
+
 // NOTE: Content-Length header response must be very accurate otherwise
 // nothing will show
-void send_get_response(int socket_fd, char *file) {
+void handle_get_response(int socket_fd, char *file) {
     if (strcmp(file, "/") == 0)
         file = "index.html";
     else
@@ -50,51 +74,18 @@ void send_get_response(int socket_fd, char *file) {
         file += 1;
 
     FILE *fp = fopen(file, "r");
-    char *header = malloc(BUFSIZ);
 
     if (fp == NULL || check_permission(file) == -1) {
         // Return 404 status code if file not found or check_permission fails
-        snprintf(header, BUFSIZ, "HTTP/1.1 404 Not Found\n"
-                                   "Content-Type: text/html\n"
-                                   "Content-Length: 13\n\n"
-                                   "404 Not Found\n");
-        write(socket_fd, header, strlen(header));
+        send_404_response(socket_fd);
         return;
     } else if (check_permission(file) == 0) {
         // Return 403 Forbidden if user has no permissions
-        snprintf(header, BUFSIZ, "HTTP/1.1 403 Forbidden\n"
-                                   "Content-Type: text/html\n"
-                                   "Content-Length: 13\n\n"
-                                   "403 Forbidden\n");
-        write(socket_fd, header, strlen(header));
+        send_403_response(socket_fd);
         return;
     }
 
-    /*
-    long length = 0;
-    char *contents = read_file_contents(fp, &length);
-    if (contents == NULL) {
-        // Return 500 Internal Server Error if the file could not be obtained
-        snprintf(header, BUFSIZ, "HTTP/1.1 500 Internal Server Error\n"
-                                   "Content-Type: text/html\n"
-                                   "Content-Length: 25\n\n"
-                                   "500 Internal Server Error\n");
-        return header;
-    }
-    fclose(fp);
-    */
-
-    if (strstr(file, ".html") != NULL) {
-        snprintf(header, BUFSIZ, "HTTP/1.1 200 OK\n"
-                                 "Content-Type: text/html\n");
-        write(socket_fd, header, strlen(header));
-    } else if (strstr(file, ".jpg") != NULL || strstr(file, ".jpeg") != NULL) {
-        snprintf(header, BUFSIZ, "HTTP/1.1 200 OK\n"
-                                 "Content-Type: image/jpeg\n");
-        write(socket_fd, header, strlen(header));
-    }
-    // TODO: else statement
-
+    print_content_type(socket_fd, file);
     send_file_contents(socket_fd, fp);
     fclose(fp);
 }
@@ -115,6 +106,33 @@ static int check_permission(char *filepath) {
         return 1;
     }
     return 0;
+}
+
+// Prints the appropriate Content-Type header to the socket
+void print_content_type(int socket_fd, char *filename) {
+    char buffer[MAX_HEADER_RESPONSE_LEN];
+
+    if (strstr(filename, ".html")) {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: text/html\n");
+        write(socket_fd, buffer, strlen(buffer));
+    } else if (strstr(filename, ".txt")) {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: text/plain\n");
+        write(socket_fd, buffer, strlen(buffer));
+    } else if (strstr(filename, ".jpg") || strstr(filename, ".jpeg")) {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: image/jpeg\n");
+        write(socket_fd, buffer, strlen(buffer));
+    } else if (strstr(filename, ".gif")) {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: image/gif\n");
+        write(socket_fd, buffer, strlen(buffer));
+    } else {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: application/octet-stream\n");
+        write(socket_fd, buffer, strlen(buffer));
+    }
 }
 
 // Reads and returns the contents of the file, returns NULL if failed or if file is empty
