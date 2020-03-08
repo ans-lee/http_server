@@ -153,6 +153,10 @@ void print_content_type(int socket_fd, char *filename) {
         snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
                                                   "Content-Type: image/x-icon\n");
         write(socket_fd, buffer, strlen(buffer));
+    } else if (strstr(filename, ".js")) {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: application/javascript\n");
+        write(socket_fd, buffer, strlen(buffer));
     } else {
         snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
                                                   "Content-Type: application/octet-stream\n");
