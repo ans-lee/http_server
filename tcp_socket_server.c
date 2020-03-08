@@ -23,9 +23,9 @@
  *  #defines
  */
 
-#define PORT                0       // Setting PORT to 0 will pick a random port
-#define MAX_CONNS           10
-#define MAX_HEADER_REQUEST_LEN     8192    // 8KB max length for HTTP request headers
+#define PORT                        0       // Setting PORT to 0 will pick a random port
+#define MAX_CONNS                   10
+#define MAX_HEADER_REQUEST_LEN      8192    // 8KB max length for HTTP request headers
 
 /*
  *  Function Prototypes

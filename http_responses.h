@@ -15,8 +15,11 @@ void send_404_response(int socket_fd);
 // Sends a 403 Forbidden Response
 void send_403_response(int socket_fd);
 
-// Generates and sends a GET response, with status code 200 OK and the
-// requested file/folder/etc if it exists and the user has permission,
-// otherwise returns a 404 Not Found or 401 Unauthorized
-// depending on the condition of the requested data
+// Sends a 400 Bad Request Response
+void send_400_response(int socket_fd);
+
+// Generates and sends a response to a GET request, with
+// status code 200 OK and the requested file/folder/etc if it exists
+// and the user has permission, otherwise returns a 404 Not Found
+// or 403 Forbidden depending on the condition of the requested data
 void handle_get_response(int socket_fd, char *file);

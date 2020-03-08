@@ -35,32 +35,44 @@ static void send_file_contents(int socket_fd, FILE *fp);
  */
 
 void send_response(int socket_fd, char *request_headers) {
-    char *http_method = strtok(request_headers, " ");
+    char *temp = malloc(strlen(request_headers) + 1);
+    strcpy(temp, request_headers);
+    char *http_method = strtok(temp, " ");
 
     if (strcmp(http_method, "GET") == 0) {
         // Get the filename
         char *file = strtok(NULL, " ");
         handle_get_response(socket_fd, file);
+    } else {
+        send_400_bad_request(socket_fd);
     }
-
-    return;
+    free(temp);
 }
 
 void send_404_response(int socket_fd) {
     char header[MAX_HEADER_RESPONSE_LEN];
     snprintf(header, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 404 Not Found\n"
-                                       "Content-Type: text/html\n"
-                                       "Content-Length: 13\n\n"
-                                       "404 Not Found\n");
+                                              "Content-Type: text/html\n"
+                                              "Content-Length: 13\n\n"
+                                              "404 Not Found\n");
     write(socket_fd, header, strlen(header));
 }
 
 void send_403_response(int socket_fd) {
     char header[MAX_HEADER_RESPONSE_LEN];
     snprintf(header, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 403 Forbidden\n"
-                                       "Content-Type: text/html\n"
-                                       "Content-Length: 13\n\n"
-                                       "403 Forbidden\n");
+                                              "Content-Type: text/html\n"
+                                              "Content-Length: 13\n\n"
+                                              "403 Forbidden\n");
+    write(socket_fd, header, strlen(header));
+}
+
+void send_400_bad_request(int socket_fd) {
+    char header[MAX_HEADER_RESPONSE_LEN];
+    snprintf(header, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 400 Bad Request\n"
+                                              "Content-Type: text/html\n"
+                                              "Content-Length: 15\n\n"
+                                              "400 Bad Request\n");
     write(socket_fd, header, strlen(header));
 }
 
@@ -70,7 +82,7 @@ void handle_get_response(int socket_fd, char *file) {
     if (strcmp(file, "/") == 0)
         file = "index.html";
     else
-        // Get the slash out of the filename
+        // Get the first slash out of the filename
         file += 1;
 
     FILE *fp = fopen(file, "r");
