@@ -44,7 +44,7 @@ void send_response(int socket_fd, char *request_headers) {
         char *file = strtok(NULL, " ");
         handle_get_response(socket_fd, file);
     } else {
-        send_400_bad_request(socket_fd);
+        send_400_response(socket_fd);
     }
     free(temp);
 }
@@ -67,7 +67,7 @@ void send_403_response(int socket_fd) {
     write(socket_fd, header, strlen(header));
 }
 
-void send_400_bad_request(int socket_fd) {
+void send_400_response(int socket_fd) {
     char header[MAX_HEADER_RESPONSE_LEN];
     snprintf(header, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 400 Bad Request\n"
                                               "Content-Type: text/html\n"
