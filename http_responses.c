@@ -132,13 +132,24 @@ void print_content_type(int socket_fd, char *filename) {
         snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
                                                   "Content-Type: text/plain\n");
         write(socket_fd, buffer, strlen(buffer));
+    } else if (strstr(filename, ".css")) {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: text/css\n");
     } else if (strstr(filename, ".jpg") || strstr(filename, ".jpeg")) {
         snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
                                                   "Content-Type: image/jpeg\n");
         write(socket_fd, buffer, strlen(buffer));
+    } else if (strstr(filename, ".png")) {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: image/png\n");
+        write(socket_fd, buffer, strlen(buffer));
     } else if (strstr(filename, ".gif")) {
         snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
                                                   "Content-Type: image/gif\n");
+        write(socket_fd, buffer, strlen(buffer));
+    } else if (strstr(filename, ".ico")) {
+        snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
+                                                  "Content-Type: image/x-icon\n");
         write(socket_fd, buffer, strlen(buffer));
     } else {
         snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
