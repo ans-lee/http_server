@@ -66,7 +66,9 @@ int main(int argc, char *argv[]) {
         port_num = DEFAULT_PORT;
 
     initialise_server(&server_fd, &address, port_num);
-    printf("\n*************** Server is listening on port %d ****************\n\n", ntohs(address.sin_port));
+    printf("\n*************** Server is listening on port %d ****************\n", ntohs(address.sin_port));
+    printf("Access your website thorugh this link: http://127.0.0.1:%d\n", ntohs(address.sin_port));
+    printf("Or through this link: http://localhost:%d\n\n", ntohs(address.sin_port));
 
     while (1) {
         setup_for_connections(&server_fd, &address);
