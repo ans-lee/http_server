@@ -1,6 +1,21 @@
 //
-//  Contains functions that handle HTTP responses
+//  Contains functions that handle HTTP responses and
+//  enums for content-types
 //
+
+/*
+ *  Enums
+ */
+
+// Content-Type enums
+typedef enum content_types {
+    X_WWW_FORM_URLENCODED,
+    FORM_DATA,
+    PLAIN,
+    JSON,
+    UNKNOWN_TYPE,
+    NO_CONTENT_TYPE
+} content_types_t;
 
 /*
  *  Functions
@@ -23,3 +38,5 @@ void send_400_response(int socket_fd);
 // and the user has permission, otherwise returns a 404 Not Found
 // or 403 Forbidden depending on the condition of the requested data
 void handle_get_response(int socket_fd, char *file);
+
+void handle_post_response(int socket_fd, char *request_headers, char *file);

@@ -110,7 +110,7 @@ void serve_request(int *server_fd, struct sockaddr_in *address) {
     long bytes_read = read(socket, request, MAX_HEADER_REQUEST_LEN);
     printf("++++++++++++++++ Reading Request ++++++++++++++++\n\n");
     printf("%s", request);
-    printf("++++++++++++++++ Finished Reading Request ++++++++++++++++\n\n");
+    printf("\n++++++++++++++++ Finished Reading Request ++++++++++++++++\n\n");
 
     // Prevent 0 byte reads from crashing the server
     if (bytes_read != 0) {

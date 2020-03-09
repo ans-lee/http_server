@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <ctype.h>
 
 /*
  *  Non-library Includes
@@ -29,6 +30,8 @@
 static int check_permission(char *filepath);
 void print_content_type(int socket_fd, char *filename);
 static void send_file_contents(int socket_fd, FILE *fp);
+int get_content_type(char *headers);
+void strtolower(char *str);
 
 /*
  *  Functions
@@ -43,6 +46,9 @@ void send_response(int socket_fd, char *request_headers) {
         // Get the filename
         char *file = strtok(NULL, " ");
         handle_get_response(socket_fd, file);
+    } else if (strcmp(http_method, "POST") == 0) {
+        char *file = strtok(NULL, " ");
+        handle_post_response(socket_fd, request_headers, file);
     } else {
         send_400_response(socket_fd);
     }
@@ -100,6 +106,15 @@ void handle_get_response(int socket_fd, char *file) {
     print_content_type(socket_fd, file);
     send_file_contents(socket_fd, fp);
     fclose(fp);
+}
+
+void handle_post_response(int socket_fd, char *request_headers, char *file) {
+    int content_id = get_content_type(request_headers);
+
+    // Get the string of the body
+    char *body = strstr(request_headers, "\r\n\r\n") + 4;
+
+    // Enter your own code here to complete the POST request
 }
 
 /*
@@ -186,4 +201,42 @@ static void send_file_contents(int socket_fd, FILE *fp) {
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
         write(socket_fd, buffer, bytes_read);
     }
+}
+
+// Returns the content type from the headers in the form of an ID
+int get_content_type(char *headers) {
+    char *temp = malloc(strlen(headers) + 1);
+    strcpy(temp, headers);
+    char *line = strtok(temp, "\n");
+
+    // Find line containing content type
+    while (line != NULL) {
+        strtolower(line);
+        if (strstr(line, "content-type:")) {
+            break;
+        }
+        line = strtok(NULL, "\n");
+    }
+
+    // Return NO_CONTENT_TYPE if content type does not exist in the headers
+    if (line == NULL)
+        return NO_CONTENT_TYPE;
+
+    if (strstr(line, "application/x-www-form-urlencoded")) {
+        return X_WWW_FORM_URLENCODED;
+    } else if (strstr(line, "multipart/form-data")) {
+        return FORM_DATA;
+    } else if (strstr(line, "application/json")) {
+        return JSON;
+    } else if (strstr(line, "text/plain")) {
+        return PLAIN;
+    }
+    // Unknown content-type
+    return UNKNOWN_TYPE;
+}
+
+// Converts a string to lowercase
+void strtolower(char *str) {
+    for (int i = 0; str[i] != '\0'; i++)
+        str[i] = tolower(str[i]);
 }
