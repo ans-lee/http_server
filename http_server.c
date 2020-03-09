@@ -48,7 +48,7 @@ int main(void) {
     struct sockaddr_in address;
 
     initialise_server(&server_fd, &address);
-    printf("\n****** Server is listening on port %d ******\n\n", ntohs(address.sin_port));
+    printf("\n*************** Server is listening on port %d ****************\n\n", ntohs(address.sin_port));
 
     while (1) {
         setup_for_connections(&server_fd, &address);
@@ -101,7 +101,7 @@ void setup_for_connections(int *server_fd, struct sockaddr_in *address) {
     int socket;
     int addrlen = sizeof(address);
 
-    printf("====== Waiting for a connection ======\n\n");
+    printf("==================== Waiting for a connection ====================\n\n");
 
     // Create a socket to get the response from the connection
     if ((socket = accept(*server_fd, (struct sockaddr*) address, (socklen_t*) &addrlen)) == -1) {
@@ -119,8 +119,6 @@ void setup_for_connections(int *server_fd, struct sockaddr_in *address) {
     if (pthread_create(&thread_id, NULL, serve_request, socket_cpy) < 0) {
         fprintf(stderr, "pthread_create: could not create thread\n");
     }
-    printf("thread_id = %ld\n", thread_id);
-    printf("socket = %d\n", socket);
 }
 
 // Threaded function to serve requests
@@ -133,16 +131,15 @@ void *serve_request(void* data) {
     // Read in the request
     char request[MAX_HEADER_REQUEST_LEN] = {0};
     long bytes_read = read(socket, request, MAX_HEADER_REQUEST_LEN);
-    printf("socket = %d, bytes_read = %ld\n", socket, bytes_read);
-    printf("++++++++++++++++ Reading Request ++++++++++++++++\n\n");
+    printf("++++++++++++++++++++++++ Reading Request +++++++++++++++++++++++++\n\n");
     printf("%s", request);
-    printf("\n++++++++++++++++ Finished Reading Request ++++++++++++++++\n\n");
+    printf("\n++++++++++++++++++++ Finished Reading Request ++++++++++++++++++++\n\n");
 
     // Prevent 0 byte reads from crashing the server
     if (bytes_read != 0)
         send_response(socket, request);
 
-    printf("\n---------------- Sent a Response ----------------\n\n");
+    printf("\n------------------------ Sent a Response -------------------------\n\n");
 
     // Destroy the socket and stop thread
     close(socket);
