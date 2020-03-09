@@ -148,7 +148,6 @@ void print_content_type(int socket_fd, char *filename) {
                                                   "Content-Type: text/plain\n");
         write(socket_fd, buffer, strlen(buffer));
     } else if (strstr(filename, ".css")) {
-        printf("filename: %s, its a css\n", filename);
         snprintf(buffer, MAX_HEADER_RESPONSE_LEN, "HTTP/1.1 200 OK\n"
                                                   "Content-Type: text/css\n");
         write(socket_fd, buffer, strlen(buffer));

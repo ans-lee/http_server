@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <pthread.h>
+#include <fcntl.h>
+#include <assert.h>
 
 /*
  *  Non-library Includes
@@ -24,7 +27,7 @@
  */
 
 #define PORT                        0       // Setting PORT to 0 will pick a random port
-#define MAX_CONNS                   10
+#define MAX_CONNS                   10      // Max queing pending connections allowed
 #define MAX_HEADER_REQUEST_LEN      8192    // 8KB max length for HTTP request headers
 
 /*
@@ -32,7 +35,8 @@
  */
 
 void initialise_server(int *server_fd, struct sockaddr_in *address);
-void serve_request(int *server_fd, struct sockaddr_in *address);
+void setup_for_connections(int *server_fd, struct sockaddr_in *address);
+void *serve_request(void* socket_ptr);
 
 /*
  *  Main
@@ -47,7 +51,7 @@ int main(void) {
     printf("\n****** Server is listening on port %d ******\n\n", ntohs(address.sin_port));
 
     while (1) {
-        serve_request(&server_fd, &address);
+        setup_for_connections(&server_fd, &address);
     }
 
     return EXIT_SUCCESS;
@@ -92,8 +96,8 @@ void initialise_server(int *server_fd, struct sockaddr_in *address) {
     }
 }
 
-// Waits for a connection and serves the response given by the connection
-void serve_request(int *server_fd, struct sockaddr_in *address) {
+// Setup the server to listen for connections and create threads to serve requests
+void setup_for_connections(int *server_fd, struct sockaddr_in *address) {
     int socket;
     int addrlen = sizeof(address);
 
@@ -105,20 +109,42 @@ void serve_request(int *server_fd, struct sockaddr_in *address) {
         exit(EXIT_FAILURE);
     }
 
+    // Malloc socket fd for the thread
+    int *socket_cpy = malloc(sizeof(int));
+    assert(socket_cpy != NULL);
+    *socket_cpy = socket;
+    
+    // Create a thread and let it handle serving this request
+    pthread_t thread_id;
+    if (pthread_create(&thread_id, NULL, serve_request, socket_cpy) < 0) {
+        fprintf(stderr, "pthread_create: could not create thread\n");
+    }
+    printf("thread_id = %ld\n", thread_id);
+    printf("socket = %d\n", socket);
+}
+
+// Threaded function to serve requests
+void *serve_request(void* data) {
+    // Stop this thread on return
+    pthread_detach(pthread_self());
+
+    int socket = *((int *) data);
+
     // Read in the request
     char request[MAX_HEADER_REQUEST_LEN] = {0};
     long bytes_read = read(socket, request, MAX_HEADER_REQUEST_LEN);
+    printf("socket = %d, bytes_read = %ld\n", socket, bytes_read);
     printf("++++++++++++++++ Reading Request ++++++++++++++++\n\n");
     printf("%s", request);
     printf("\n++++++++++++++++ Finished Reading Request ++++++++++++++++\n\n");
 
     // Prevent 0 byte reads from crashing the server
-    if (bytes_read != 0) {
+    if (bytes_read != 0)
         send_response(socket, request);
-    }
 
     printf("\n---------------- Sent a Response ----------------\n\n");
 
-    // Destroy the socket
+    // Destroy the socket and stop thread
     close(socket);
+    return NULL;
 }
