@@ -26,7 +26,7 @@
  *  #defines
  */
 
-#define PORT                        0       // Setting PORT to 0 will pick a random port
+#define DEFAULT_PORT                0       // Setting PORT to 0 will pick a random port
 #define MAX_CONNS                   10      // Max queing pending connections allowed
 #define MAX_HEADER_REQUEST_LEN      8192    // 8KB max length for HTTP request headers
 
@@ -34,7 +34,7 @@
  *  Function Prototypes
  */
 
-void initialise_server(int *server_fd, struct sockaddr_in *address);
+void initialise_server(int *server_fd, struct sockaddr_in *address, int port_num);
 void setup_for_connections(int *server_fd, struct sockaddr_in *address);
 void *serve_request(void* socket_ptr);
 
@@ -42,12 +42,30 @@ void *serve_request(void* socket_ptr);
  *  Main
  */
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    if (argc == 2) {
+        if ((!atoi(argv[1]) && (strcmp(argv[1], "0") != 0)) || atoi(argv[1]) > 65535 || atoi(argv[1]) < 0) {
+            fprintf(stderr, "Usage: %s <port number from 0-65535, 0 for random port>\n", argv[0]);
+            fprintf(stderr, "Alternate Usage: %s\n", argv[0]);
+            return EXIT_FAILURE;
+        }
+    } else if (argc > 2) {
+        fprintf(stderr, "Usage: %s <port number from 0-65535, 0 for random port>\n", argv[0]);
+        fprintf(stderr, "Alternate Usage: %s\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
     int server_fd;
     int new_socket;
     struct sockaddr_in address;
 
-    initialise_server(&server_fd, &address);
+    int port_num;
+    if (argc != 1)
+        port_num = atoi(argv[1]);
+    else
+        port_num = DEFAULT_PORT;
+
+    initialise_server(&server_fd, &address, port_num);
     printf("\n*************** Server is listening on port %d ****************\n\n", ntohs(address.sin_port));
 
     while (1) {
@@ -62,7 +80,7 @@ int main(void) {
  */
 
 // Initialises the server
-void initialise_server(int *server_fd, struct sockaddr_in *address) {
+void initialise_server(int *server_fd, struct sockaddr_in *address, int port_num) {
     // Create socket file descriptor
     if ((*server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket");
@@ -72,7 +90,7 @@ void initialise_server(int *server_fd, struct sockaddr_in *address) {
     // Setup the socket
     address->sin_family = AF_INET;
     address->sin_addr.s_addr = INADDR_ANY;
-    address->sin_port = htons(PORT);
+    address->sin_port = htons(port_num);
 
     memset(address->sin_zero, '\0', sizeof address->sin_zero);
 
