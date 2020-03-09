@@ -39,4 +39,7 @@ void send_400_response(int socket_fd);
 // or 403 Forbidden depending on the condition of the requested data
 void handle_get_response(int socket_fd, char *file);
 
+// Generates and sends a response to a POST request. Implementation of this
+// function will be very subjective to the applications used with this server
+// program
 void handle_post_response(int socket_fd, char *request_headers, char *file);
