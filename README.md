@@ -29,13 +29,15 @@ make
 ```
 ./http_server 8000
 ```
+5. You should be able to access the server on a browser at http://localhost:XXXXX or http://127.0.0.1:XXXXX, replacing the X's with the port number
 **NOTE:** Some port numbers around 1 to 1000 are reserved and numbers below 0 and above 66535 cannot be used.
+A port number higher than 2000 should be fine.
 
 ## Issues
 
 As this is a small project for educational purposes and not for commercial use, the server will have
 several issues if used beyond its capabilities. Thus, I would not recommend anyone to use this
-server in public.
+server outside of a developer environment.
 
 ## Support
 
