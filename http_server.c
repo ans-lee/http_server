@@ -56,7 +56,6 @@ int main(int argc, char *argv[]) {
     }
 
     int server_fd;
-    int new_socket;
     struct sockaddr_in address;
 
     int port_num;
