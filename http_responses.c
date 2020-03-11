@@ -218,19 +218,26 @@ int get_content_type(char *headers) {
     }
 
     // Return NO_CONTENT_TYPE if content type does not exist in the headers
-    if (line == NULL)
+    if (line == NULL) {
+        free(temp);
         return NO_CONTENT_TYPE;
+    }
 
     if (strstr(line, "application/x-www-form-urlencoded")) {
+        free(temp);
         return X_WWW_FORM_URLENCODED;
     } else if (strstr(line, "multipart/form-data")) {
+        free(temp);
         return FORM_DATA;
     } else if (strstr(line, "application/json")) {
+        free(temp);
         return JSON;
     } else if (strstr(line, "text/plain")) {
+        free(temp);
         return PLAIN;
     }
     // Unknown content-type
+    free(temp);
     return UNKNOWN_TYPE;
 }
 

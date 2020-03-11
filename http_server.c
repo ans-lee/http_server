@@ -162,5 +162,6 @@ void *serve_request(void* data) {
 
     // Destroy the socket and stop thread
     close(socket);
+    free(data);
     return NULL;
 }
