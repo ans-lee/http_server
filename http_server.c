@@ -118,7 +118,7 @@ void initialise_server(int *server_fd, struct sockaddr_in *address, int port_num
 // Setup the server to listen for connections and create threads to serve requests
 void setup_for_connections(int *server_fd, struct sockaddr_in *address) {
     int socket;
-    int addrlen = sizeof(address);
+    int addrlen = sizeof(*address);
 
     printf("==================== Waiting for a connection ====================\n\n");
 
